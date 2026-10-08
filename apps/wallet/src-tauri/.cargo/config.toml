@@ -1,0 +1,3 @@
+# Pick dependency versions that build with the crate's declared rust-version.
+[resolver]
+incompatible-rust-versions = "fallback"

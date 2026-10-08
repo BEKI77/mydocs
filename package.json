@@ -1,0 +1,14 @@
+{
+  "name": "digital-wallet",
+  "private": true,
+  "version": "0.1.0",
+  "scripts": {
+    "db:up": "podman run -d --name dw-postgres -e POSTGRES_USER=wallet -e POSTGRES_PASSWORD=wallet -e POSTGRES_DB=digital_wallet -p 5433:5432 docker.io/library/postgres:16",
+    "db:migrate": "pnpm --filter @dw/api db:migrate",
+    "db:seed": "pnpm --filter @dw/api db:seed",
+    "dev:api": "pnpm --filter @dw/api dev",
+    "dev:issuer": "pnpm --filter @dw/issuer dev",
+    "dev:wallet": "pnpm --filter @dw/wallet dev",
+    "build": "pnpm -r build"
+  }
+}
