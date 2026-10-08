@@ -1,0 +1,204 @@
+name: Build Wallet Mobile (Android)
+
+# Builds the holder wallet in apps/wallet (Tauri 2 → Android APK).
+#
+# - Every push/PR touching the wallet builds an APK. Non-PR builds attach it to
+#   a `wallet-build-<version>-<build>` pre-release in this repo.
+#
+# API URL: the address the app talks to is baked in at build time. Set the
+# repository variable WALLET_API_URL (e.g. https://api.example.com). Without it
+# the app uses http://localhost:4000, which only works with `adb reverse`.
+# Signed release builds block plain http, so they need an https URL.
+#
+# Signing: add these repository secrets to get a signed *release* APK that
+# installs over previous versions. Without them the job builds a debug APK
+# (installable for testing, but can't be upgraded to a signed build in place).
+#   ANDROID_KEYSTORE_BASE64   base64 -w0 of the .jks keystore
+#   ANDROID_KEYSTORE_PASSWORD keystore (store) password
+#   ANDROID_KEY_ALIAS         key alias inside the keystore
+#   ANDROID_KEY_PASSWORD      key password
+# Create a keystore once with:
+#   keytool -genkey -v -keystore wallet.jks -keyalg RSA -keysize 2048 -validity 10000 -alias wallet
+
+on:
+  push:
+    branches:
+      - main
+    tags:
+      - "wallet-v*"
+    paths:
+      - "apps/wallet/**"
+      - "packages/types/**"
+      - "pnpm-lock.yaml"
+      - ".github/workflows/build-wallet-mobile.yml"
+  pull_request:
+    paths:
+      - "apps/wallet/**"
+      - "packages/types/**"
+      - "pnpm-lock.yaml"
+      - ".github/workflows/build-wallet-mobile.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: wallet-mobile-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  android:
+    name: Android APK
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    env:
+      NDK_VERSION: 27.0.12077973
+    defaults:
+      run:
+        working-directory: apps/wallet
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
+        with:
+          # The action's default ("tools platform-tools") fails on current
+          # runners: cmdline-tools 16+ no longer ship the legacy "tools" package.
+          packages: platform-tools
+
+      - name: Install NDK and platform
+        run: |
+          sdkmanager --install "ndk;${NDK_VERSION}" "platforms;android-36" "build-tools;35.0.0" > /dev/null
+          echo "NDK_HOME=${ANDROID_HOME}/ndk/${NDK_VERSION}" >> "$GITHUB_ENV"
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+          cache-dependency-path: pnpm-lock.yaml
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: aarch64-linux-android,armv7-linux-androideabi
+
+      - name: Rust cache
+        uses: swatinem/rust-cache@v2
+        with:
+          workspaces: apps/wallet/src-tauri -> target
+
+      # The wallet imports the shared types package, so install from the
+      # workspace root, limited to the wallet and what it depends on.
+      - name: Install dependencies
+        working-directory: .
+        run: pnpm install --frozen-lockfile --filter "@dw/wallet..."
+
+      - name: Resolve version
+        id: version
+        run: |
+          VERSION=$(jq -r '.version' src-tauri/tauri.conf.json)
+          # Monotonic Android versionCode so each CI build installs over the last.
+          # Offset well above local/manual builds (which use small codes) so a
+          # phone that ever ran a hand-built APK still accepts CI updates.
+          CODE=$(( 100000 + GITHUB_RUN_NUMBER ))
+          SHORT_SHA=${GITHUB_SHA::7}
+          echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
+          echo "code=${CODE}" >> "$GITHUB_OUTPUT"
+          echo "short_sha=${SHORT_SHA}" >> "$GITHUB_OUTPUT"
+
+      - name: Configure API URL
+        env:
+          WALLET_API_URL: ${{ vars.WALLET_API_URL }}
+        run: |
+          # Only export when set: an empty value would override the app's default.
+          if [ -n "${WALLET_API_URL}" ]; then
+            echo "VITE_API_URL=${WALLET_API_URL}" >> "$GITHUB_ENV"
+          else
+            echo "::warning::WALLET_API_URL is not set — this build talks to http://localhost:4000."
+          fi
+
+      - name: Configure release signing
+        id: signing
+        env:
+          KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        run: |
+          if [ -z "${KEYSTORE_BASE64}" ]; then
+            echo "No ANDROID_KEYSTORE_BASE64 secret — building a debug APK instead."
+            echo "signed=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          printf '%s' "${KEYSTORE_BASE64}" | tr -d '[:space:]' | base64 -d > "${RUNNER_TEMP}/wallet.jks"
+          {
+            echo "storeFile=${RUNNER_TEMP}/wallet.jks"
+            echo "storePassword=${KEYSTORE_PASSWORD}"
+            echo "keyAlias=${KEY_ALIAS}"
+            echo "keyPassword=${KEY_PASSWORD}"
+          } > src-tauri/gen/android/app/keystore.properties
+          echo "signed=true" >> "$GITHUB_OUTPUT"
+
+      - name: Build APK
+        run: |
+          CONFIG='{"bundle":{"android":{"versionCode":${{ steps.version.outputs.code }}}}}'
+          if [ "${{ steps.signing.outputs.signed }}" = "true" ]; then
+            pnpm tauri android build --ci --apk --target aarch64 armv7 --config "$CONFIG"
+          else
+            pnpm tauri android build --ci --apk --debug --target aarch64 armv7 --config "$CONFIG"
+          fi
+
+      - name: Collect APK
+        id: apk
+        run: |
+          mkdir -p "${GITHUB_WORKSPACE}/apk-out"
+          KIND=$([ "${{ steps.signing.outputs.signed }}" = "true" ] && echo release || echo debug)
+          SRC=$(find src-tauri/gen/android/app/build/outputs/apk -name '*.apk' | grep "/${KIND}/" | head -n1)
+          if [ -z "$SRC" ]; then
+            echo "No APK produced"; find src-tauri/gen/android/app/build/outputs -type f; exit 1
+          fi
+          NAME="digital-wallet-${{ steps.version.outputs.version }}-${{ steps.version.outputs.code }}-${KIND}.apk"
+          cp "$SRC" "${GITHUB_WORKSPACE}/apk-out/${NAME}"
+          echo "name=${NAME}" >> "$GITHUB_OUTPUT"
+          ls -lh "${GITHUB_WORKSPACE}/apk-out"
+
+      # Every non-PR build keeps its APK as a pre-release in this repo. Release
+      # assets live in repo storage, not Actions artifact storage, and need only
+      # the built-in GITHUB_TOKEN. (PR builds just prove it compiles.)
+      - name: Attach APK to a build release
+        if: github.event_name != 'pull_request'
+        working-directory: .
+        env:
+          GH_TOKEN: ${{ github.token }}
+          VERSION: ${{ steps.version.outputs.version }}
+          CODE: ${{ steps.version.outputs.code }}
+          SHORT_SHA: ${{ steps.version.outputs.short_sha }}
+          APK_NAME: ${{ steps.apk.outputs.name }}
+          SIGNED: ${{ steps.signing.outputs.signed }}
+        run: |
+          TAG="wallet-build-${VERSION}-${CODE}"
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            # Re-run of the same run number: replace the APK.
+            gh release upload "$TAG" "apk-out/${APK_NAME}" --clobber
+          else
+            gh release create "$TAG" "apk-out/${APK_NAME}" \
+              --target "$GITHUB_SHA" \
+              --title "Digital Wallet ${VERSION} (build ${CODE}, ${SHORT_SHA})" \
+              --notes "$([ "$SIGNED" = "true" ] && echo "Signed release APK" || echo "Debug APK (no signing secrets)") built from ${GITHUB_REF_NAME} @ ${SHORT_SHA}." \
+              --prerelease --latest=false
+          fi
+          echo "APK: https://github.com/${GITHUB_REPOSITORY}/releases/tag/${TAG}" >> "$GITHUB_STEP_SUMMARY"

@@ -1,7 +1,7 @@
 node_modules
 dist
 .env
-.keys
-storage
+/services/api/.keys
+/services/api/storage
 target
 *.log

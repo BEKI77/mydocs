@@ -1,6 +1,6 @@
 # Digital Document Wallet
 
-MVP of the plan in `../mydoc/PAYMENT_VERIFICATION_DOCUMENT.md`: a holder scans a document, an issuer
+MVP of a digital document wallet: a holder scans a document, an issuer
 verifies it and signs a credential, and a verifier confirms it from a short-lived QR code.
 
 ```
@@ -9,8 +9,6 @@ apps/issuer      React backoffice for issuers, plus the public verifier page at 
 services/api     NestJS + Drizzle + PostgreSQL backend
 packages/types   Types shared by the three apps
 ```
-
-UI mocks: `../mydoc/ui-mock/`.
 
 ## Run it
 
@@ -32,13 +30,34 @@ Wallet as an app:
 ```bash
 cd apps/wallet
 pnpm tauri dev                               # desktop window
-pnpm tauri android init && pnpm tauri android dev   # Android (needs ANDROID_HOME and NDK_HOME)
+pnpm tauri android dev                       # Android (needs ANDROID_HOME, NDK_HOME, JAVA_HOME)
 ```
 
 On a physical Android device run `adb reverse tcp:4000 tcp:4000` so the app reaches the API on
 `localhost`. To use another host, set `VITE_API_URL` and add it to `connect-src` in
 `apps/wallet/src-tauri/tauri.conf.json`, and set `VERIFY_BASE_URL` so the QR link is reachable
 from the verifier's phone.
+
+## Deploy (Coolify)
+
+`docker-compose.yml` runs PostgreSQL, the API and the issuer/verifier site. In Coolify, create a
+Docker Compose resource from this repository, assign a domain to `api` (port 4000)
+and to `issuer` (port 80), and set `API_URL`, `ISSUER_URL`, `POSTGRES_PASSWORD`, `JWT_SECRET`,
+`SEED_ISSUER_EMAIL` and `SEED_ISSUER_PASSWORD`. `API_URL` and `ISSUER_URL` must match the two
+domains. The API container applies migrations and seeds the issuer on every start.
+
+Changing `API_URL` requires a rebuild of `issuer`, because the address is compiled into the bundle.
+Back up the `keys` and `storage` volumes along with the database.
+
+## Android builds (GitHub Actions)
+
+`.github/workflows/build-wallet-mobile.yml` builds an APK on every push
+that touches the wallet and attaches it to a `wallet-build-*` pre-release. Set the repository
+variable `WALLET_API_URL` to the deployed `API_URL`. Add the `ANDROID_KEYSTORE_*` secrets listed in
+the workflow to get a signed release APK; without them it builds a debug APK.
+
+To build locally: `pnpm tauri android build --apk --debug` in `apps/wallet` with `ANDROID_HOME`,
+`NDK_HOME` and `JAVA_HOME` set.
 
 ## Tests
 
@@ -74,7 +93,7 @@ cd apps/wallet/src-tauri && cargo test --lib # key encryption
   there is no in-page QR scanner.
 - The wallet learns about issuer decisions by polling every 5 s, not by push.
 - On-device key storage uses a password-derived key, not the platform keystore or biometrics.
-- The Android build has not been run; only the desktop build of the Rust code is compiled and tested.
+- The Android APK builds, but it has not been installed and exercised on a device.
 - HTTPS termination, device recovery, and multiple issuers per document type.
 
 The Tauri crates are pinned to the 2.8 line in `Cargo.lock` because newer releases need Rust 1.90.

@@ -18,6 +18,9 @@ export const config = {
   corsOrigins: (process.env.CORS_ORIGINS ?? '').split(',').map((o) => o.trim()).filter(Boolean),
   verifyBaseUrl: process.env.VERIFY_BASE_URL ?? 'http://localhost:5174/v',
   presentationTtlSeconds: Number(process.env.PRESENTATION_TTL_SECONDS ?? 120),
+  // Number of reverse proxies in front of the API (e.g. 1 behind Coolify's Traefik),
+  // so rate limits apply per client rather than per proxy.
+  trustProxy: Number(process.env.TRUST_PROXY ?? 0),
   maxUploadBytes: 10 * 1024 * 1024,
   credentialValidityYears: 5,
 };

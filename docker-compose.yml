@@ -1,0 +1,77 @@
+# Production stack for Coolify: PostgreSQL, the API, and the issuer/verifier web app.
+#
+# In Coolify: create a "Docker Compose" resource from this repository
+# (Base Directory "/"), then:
+#   1. Assign a domain to `api` (port 4000) and to `issuer` (port 80).
+#   2. Set the environment variables below. API_URL and ISSUER_URL must be the
+#      same https URLs as those two domains, without a trailing slash.
+#
+# Required variables:
+#   API_URL               e.g. https://wallet-api.example.com
+#   ISSUER_URL            e.g. https://issuer.example.com
+#   POSTGRES_PASSWORD     database password (letters and digits only: it is placed in a URL)
+#   JWT_SECRET            openssl rand -hex 32
+#   SEED_ISSUER_EMAIL     first issuer portal account
+#   SEED_ISSUER_PASSWORD  its password (min 8 characters)
+#
+# No host ports are published: Coolify's proxy reaches the services over the
+# internal network and terminates HTTPS.
+
+services:
+  postgres:
+    image: postgres:16
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: wallet
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD}
+      POSTGRES_DB: digital_wallet
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U wallet -d digital_wallet"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  api:
+    build:
+      context: .
+      dockerfile: services/api/Dockerfile
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgres://wallet:${POSTGRES_PASSWORD}@postgres:5432/digital_wallet
+      JWT_SECRET: ${JWT_SECRET:?Set JWT_SECRET}
+      # Browser origins allowed to call the API: the issuer site and the mobile app's webview.
+      CORS_ORIGINS: ${ISSUER_URL:?Set ISSUER_URL},tauri://localhost,http://tauri.localhost,https://tauri.localhost
+      # Encoded into presentation QR codes; the verifier page is served by the issuer site.
+      VERIFY_BASE_URL: ${ISSUER_URL}/v
+      TRUST_PROXY: "1"
+      SEED_ISSUER_EMAIL: ${SEED_ISSUER_EMAIL:?Set SEED_ISSUER_EMAIL}
+      SEED_ISSUER_PASSWORD: ${SEED_ISSUER_PASSWORD:?Set SEED_ISSUER_PASSWORD}
+    volumes:
+      # Uploaded scans and the issuer signing key. Losing `keys` means existing
+      # credentials can no longer be re-issued by this issuer; back both up.
+      - storage:/data/storage
+      - keys:/data/keys
+    expose:
+      - "4000"
+
+  issuer:
+    build:
+      context: .
+      dockerfile: apps/issuer/Dockerfile
+      args:
+        VITE_API_URL: ${API_URL:?Set API_URL}
+    restart: unless-stopped
+    depends_on:
+      - api
+    expose:
+      - "80"
+
+volumes:
+  pgdata:
+  storage:
+  keys:

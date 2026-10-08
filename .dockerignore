@@ -1,0 +1,8 @@
+**/node_modules
+**/dist
+**/target
+**/.env
+**/.keys
+services/api/storage
+apps/wallet/src-tauri/gen
+.git

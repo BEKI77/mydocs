@@ -12,6 +12,7 @@ import { CredentialsController } from './credentials/credentials.controller';
 import { CredentialsService } from './credentials/credentials.service';
 import { createDb, DB } from './database/db';
 import { DocumentsController } from './documents/documents.controller';
+import { HealthController } from './health.controller';
 import { IssuerController } from './issuers/issuer.controller';
 import { IssuerKeysService } from './issuers/issuer-keys.service';
 import { PresentationsController } from './presentations/presentations.controller';
@@ -27,6 +28,7 @@ const { db, pool } = createDb();
     ThrottlerModule.forRoot([{ ttl: 60_000, limit: 120 }]),
   ],
   controllers: [
+    HealthController,
     AuthController,
     WalletsController,
     DocumentsController,
