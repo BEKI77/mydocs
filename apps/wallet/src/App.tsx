@@ -1,7 +1,10 @@
 import { Navigate, Route, Routes } from "react-router-dom";
+import TabLayout from "./components/TabLayout";
 import Credential from "./pages/Credential";
 import Login from "./pages/Login";
 import Presentation from "./pages/Presentation";
+import Profile from "./pages/Profile";
+import Requests from "./pages/Requests";
 import Scan from "./pages/Scan";
 import Verification from "./pages/Verification";
 import Wallet from "./pages/Wallet";
@@ -20,7 +23,11 @@ export default function App() {
   }
   return (
     <Routes>
-      <Route path="/wallet" element={<Wallet />} />
+      <Route element={<TabLayout />}>
+        <Route path="/wallet" element={<Wallet />} />
+        <Route path="/requests" element={<Requests />} />
+        <Route path="/profile" element={<Profile />} />
+      </Route>
       <Route path="/add" element={<Scan />} />
       <Route path="/documents/:id" element={<Verification />} />
       <Route path="/credentials/:id" element={<Credential />} />

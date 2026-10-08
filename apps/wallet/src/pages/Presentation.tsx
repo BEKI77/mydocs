@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import Header from "../components/Header";
 import Icon from "../components/Icon";
+import { useDarkScreen } from "../services/systemBars";
 import { createPresentation, getPresentationState } from "../services/verification";
 
 function Result({ valid }: { valid: boolean }) {
@@ -56,6 +57,7 @@ export default function Presentation() {
   }, [start]);
 
   const finished = state?.status === "VERIFIED";
+  useDarkScreen(!finished);
   useEffect(() => {
     if (!session || finished) return;
     const tick = () => setSecondsLeft(Math.max(0, Math.ceil((new Date(session.expiresAt).getTime() - Date.now()) / 1000)));

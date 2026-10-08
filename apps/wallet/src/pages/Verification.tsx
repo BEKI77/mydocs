@@ -23,9 +23,9 @@ export default function Verification() {
   const [busy, setBusy] = useState(false);
 
   const document = data?.find((d) => d.id === id);
-  if (loadError && !data) return <div className="screen"><Header backTo="/wallet" backLabel="Back to wallet" /><p className="error" role="alert">{loadError}</p></div>;
+  if (loadError && !data) return <div className="screen"><Header backTo="/requests" backLabel="Back to requests" /><p className="error" role="alert">{loadError}</p></div>;
   if (!data) return <div className="screen"><p className="muted center">Loading…</p></div>;
-  if (!document) return <div className="screen"><Header backTo="/wallet" backLabel="Back to wallet" /><p className="muted">This document is no longer in your wallet.</p></div>;
+  if (!document) return <div className="screen"><Header backTo="/requests" backLabel="Back to requests" /><p className="muted">This document is no longer in your wallet.</p></div>;
 
   const status = document.verification?.status ?? "DRAFT";
   const reviewed = status === "APPROVED" || status === "REJECTED";
@@ -45,7 +45,7 @@ export default function Verification() {
 
   return (
     <div className="screen">
-      <Header backTo="/wallet" backLabel="Back to wallet" />
+      <Header backTo="/requests" backLabel="Back to requests" />
       <div className="stack-tight">
         <Badge status={status === "APPROVED" ? "VERIFIED" : status} />
         <h1 className="title title-large">{documentTypeLabel(document.type)}</h1>
@@ -89,8 +89,8 @@ export default function Verification() {
                 {status === "REJECTED" ? "Submit again" : "Submit for verification"}
               </button>
             )}
-            <Link to="/wallet" className="button button-ink">Back to wallet</Link>
-            <button type="button" className="button button-ghost button-danger" disabled={busy} onClick={() => run(() => deleteDocument(document.id), () => navigate("/wallet", { replace: true }))}>
+            <Link to="/requests" className="button button-ink">Back to requests</Link>
+            <button type="button" className="button button-ghost button-danger" disabled={busy} onClick={() => run(() => deleteDocument(document.id), () => navigate("/requests", { replace: true }))}>
               {status === "PENDING" ? "Withdraw request" : "Remove document"}
             </button>
           </>

@@ -53,7 +53,7 @@ export default function Credential() {
 
       <div className="spacer" />
       {active ? (
-        <Link to={`/credentials/${credential.id}/present`} className="button button-primary"><Icon name="qr" size={20} />Present</Link>
+        <Link to={`/credentials/${credential.id}/present`} className="button button-primary"><Icon name="qr" size={20} />Present with QR</Link>
       ) : (
         <p className="muted center">This credential is {STATUS_LABEL[credential.status].toLowerCase()} and can no longer be presented.</p>
       )}

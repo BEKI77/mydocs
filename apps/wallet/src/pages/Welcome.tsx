@@ -1,8 +1,10 @@
 import { Link } from "react-router-dom";
 import Badge from "../components/Badge";
 import Icon from "../components/Icon";
+import { useDarkScreen } from "../services/systemBars";
 
 export default function Welcome() {
+  useDarkScreen();
   return (
     <div className="screen screen-dark welcome">
       <div className="wordmark">

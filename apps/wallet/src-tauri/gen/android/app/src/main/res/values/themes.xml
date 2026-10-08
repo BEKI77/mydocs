@@ -1,6 +1,7 @@
 <resources xmlns:tools="http://schemas.android.com/tools">
     <!-- Base application theme. -->
     <style name="Theme.wallet" parent="Theme.MaterialComponents.DayNight.NoActionBar">
-        <!-- Customize your theme here. -->
+        <!-- Matches the app's dark surface so startup doesn't flash white. -->
+        <item name="android:windowBackground">@color/ink</item>
     </style>
 </resources>

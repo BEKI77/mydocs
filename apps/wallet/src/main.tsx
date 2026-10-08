@@ -8,6 +8,9 @@ import "@fontsource/ibm-plex-sans/700.css";
 import "@fontsource/ibm-plex-mono/400.css";
 import "./styles.css";
 import App from "./App";
+import { initSystemBars } from "./services/systemBars";
+
+initSystemBars();
 
 ReactDOM.createRoot(document.getElementById("root") as HTMLElement).render(
   <React.StrictMode>

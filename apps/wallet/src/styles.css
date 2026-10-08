@@ -20,10 +20,14 @@
   --danger-fg: #8c1f16;
   --danger-bg: #fbe6e3;
   --mono: "IBM Plex Mono", ui-monospace, monospace;
+  /* Space taken by the status bar and navigation bar. Android overrides these
+     with exact values (services/systemBars.ts); browsers use their safe area. */
+  --safe-top: env(safe-area-inset-top, 0px);
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
 }
 
 * { box-sizing: border-box; }
-html { background: var(--ink); }
+html { background: var(--bg); }
 body {
   margin: 0;
   color: var(--ink);
@@ -46,19 +50,21 @@ button { cursor: pointer; }
   flex-direction: column;
   gap: 22px;
   width: 100%;
-  max-width: 480px;
+  max-width: 520px;
   min-height: 100dvh;
   margin: 0 auto;
-  padding: calc(env(safe-area-inset-top) + 24px) 24px calc(env(safe-area-inset-bottom) + 28px);
+  padding: calc(var(--safe-top) + 12px) 20px calc(var(--safe-bottom) + 24px);
   background: var(--bg);
 }
 .screen-dark { background: var(--ink); color: var(--on-ink); }
 .stack { display: flex; flex-direction: column; gap: 12px; }
 .stack-tight { display: flex; flex-direction: column; align-items: flex-start; gap: 10px; }
 .spacer { flex-grow: 1; }
-.header { display: flex; align-items: center; gap: 6px; min-height: 44px; }
-.header-title { font-size: 22px; font-weight: 600; letter-spacing: -0.01em; }
-.icon-button { display: flex; align-items: center; justify-content: center; width: 44px; height: 44px; margin-left: -10px; border-radius: 12px; }
+.header { display: flex; align-items: center; justify-content: space-between; gap: 12px; min-height: 44px; }
+.header-title { font-size: 16px; font-weight: 600; text-align: center; }
+.header-balance { width: 44px; flex-shrink: 0; }
+.back-button { display: flex; align-items: center; justify-content: center; width: 44px; height: 44px; flex-shrink: 0; border-radius: 999px; background: var(--surface); border: 1px solid var(--line); }
+.screen-dark .back-button { background: var(--ink-raised); border-color: var(--ink-line); }
 
 /* Type */
 .title { font-size: 30px; line-height: 1.15; font-weight: 600; letter-spacing: -0.02em; }
@@ -129,7 +135,7 @@ button { cursor: pointer; }
 .badge-muted { background: var(--line-soft); color: #3d4a46; }
 
 /* Welcome */
-.welcome { gap: 32px; padding-top: calc(env(safe-area-inset-top) + 56px); }
+.welcome { gap: 32px; padding-top: calc(var(--safe-top) + 40px); }
 .wordmark { display: flex; align-items: center; gap: 10px; font-weight: 600; letter-spacing: 0.02em; }
 .welcome-art { position: relative; height: 280px; }
 .art-card { position: absolute; width: 274px; height: 172px; border-radius: 18px; }
@@ -145,24 +151,9 @@ button { cursor: pointer; }
 .welcome-copy p { font-size: 16px; color: var(--on-ink-muted); }
 
 /* Wallet */
-.wallet-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; padding-top: 16px; }
-.add-card { display: flex; align-items: center; gap: 14px; padding: 16px; border: 1.5px dashed #8fa39b; border-radius: 16px; }
-.add-card > span:last-child { display: flex; flex-direction: column; gap: 2px; }
-.add-icon { display: flex; align-items: center; justify-content: center; width: 44px; height: 44px; flex-shrink: 0; border-radius: 12px; background: var(--accent); color: #fff; }
-.add-title { font-size: 16px; font-weight: 600; }
 .cred-card { display: flex; flex-direction: column; gap: 22px; padding: 18px; border-radius: 18px; background: var(--surface); border: 1px solid var(--line); }
 .cred-card-dark { background: var(--ink); border-color: var(--ink); color: var(--on-ink); }
 .cred-row { display: flex; justify-content: space-between; align-items: center; gap: 12px; }
-.cred-name { display: flex; align-items: center; gap: 10px; font-size: 17px; font-weight: 600; }
-.cred-name svg { color: var(--accent); flex-shrink: 0; }
-.cred-card-dark .cred-name svg { color: var(--mint); }
-.cred-meta { align-items: flex-end; font-size: 13px; color: var(--muted); }
-.cred-card-dark .cred-meta { color: var(--on-ink-muted); }
-.cred-meta .mono { font-size: 14px; color: var(--ink); }
-.cred-card-dark .cred-meta .mono { color: var(--on-ink); }
-.doc-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 16px 18px; border-radius: 16px; background: var(--surface); border: 1px solid var(--line); }
-.doc-row > span:first-child { display: flex; flex-direction: column; gap: 3px; }
-.doc-name { font-size: 16px; font-weight: 600; }
 
 /* Add document */
 .source-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
@@ -215,9 +206,108 @@ button { cursor: pointer; }
 .disclosure { display: flex; flex-direction: column; gap: 10px; padding: 16px 18px; border-radius: 16px; background: var(--ink-raised); border: 1px solid var(--ink-line); font-size: 14px; line-height: 1.6; }
 
 /* Result */
-.result { padding-top: calc(env(safe-area-inset-top) + 96px); }
+.result { padding-top: calc(var(--safe-top) + 80px); }
 .result-head { display: flex; flex-direction: column; align-items: center; gap: 12px; text-align: center; }
 .result-mark { display: flex; align-items: center; justify-content: center; width: 96px; height: 96px; margin-bottom: 6px; border-radius: 999px; color: #fff; }
 .result-ok { background: var(--accent); }
 .result-bad { background: var(--danger); }
 .result-verdict { font-size: 44px; line-height: 1; font-weight: 700; letter-spacing: 0.02em; }
+
+/* Tabs */
+.tab-screen { max-width: 720px; gap: 20px; padding-top: calc(var(--safe-top) + 20px); padding-bottom: calc(var(--safe-bottom) + 124px); }
+.tab-bar {
+  position: fixed;
+  left: 50%;
+  bottom: calc(var(--safe-bottom) + 16px);
+  z-index: 10;
+  display: flex;
+  gap: 4px;
+  width: min(calc(100% - 32px), 420px);
+  padding: 8px;
+  border-radius: 26px;
+  background: var(--ink);
+  box-shadow: 0 10px 28px rgba(18, 33, 29, 0.28);
+  transform: translateX(-50%);
+}
+.tab { flex: 1 1 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px; height: 54px; border-radius: 18px; color: var(--on-ink-muted); font-size: 11px; font-weight: 600; }
+.tab.active { background: var(--mint); color: var(--ink); font-weight: 700; }
+.tab-bar :focus-visible { outline-color: var(--mint); }
+.fab {
+  position: fixed;
+  right: max(20px, calc(50% - 340px));
+  bottom: calc(var(--safe-bottom) + 104px);
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 60px;
+  height: 60px;
+  border-radius: 999px;
+  background: var(--accent);
+  color: #fff;
+  box-shadow: 0 8px 20px rgba(10, 106, 78, 0.35);
+}
+.tab-head { display: flex; justify-content: space-between; align-items: center; gap: 12px; }
+.eyebrow { font-size: 13px; color: var(--muted); }
+.tab-screen .title { font-size: 28px; }
+.count-chip { display: flex; align-items: center; gap: 6px; padding: 6px 12px; border-radius: 999px; background: var(--accent-tint); color: var(--accent-dark); font-size: 13px; font-weight: 600; white-space: nowrap; }
+.empty { display: flex; flex-direction: column; align-items: center; gap: 10px; padding: 32px 20px; border-radius: 22px; background: var(--surface); border: 1px solid var(--line); text-align: center; }
+.empty .button { margin-top: 8px; }
+.empty-icon { display: flex; align-items: center; justify-content: center; width: 56px; height: 56px; border-radius: 18px; background: var(--accent-tint); color: var(--accent); }
+
+/* Wallet tab */
+.cred-grid, .request-list { display: grid; grid-template-columns: minmax(0, 1fr); gap: 12px; }
+.cred-card { gap: 34px; padding: 20px; border-radius: 22px; }
+.cred-issuer { font-size: 13px; color: var(--muted); text-align: right; }
+.cred-card-dark .cred-issuer, .cred-card-dark .cred-number, .cred-card-dark .overline { color: var(--on-ink-muted); }
+.cred-foot { align-items: flex-end; }
+.cred-name { display: block; font-size: 22px; font-weight: 600; letter-spacing: -0.02em; }
+.cred-number { display: block; margin-top: 4px; font-size: 14px; color: var(--muted); }
+.cred-expiry { display: flex; flex-direction: column; align-items: flex-end; gap: 2px; font-size: 14px; white-space: nowrap; }
+.cred-expiry .overline { font-size: 11px; }
+.review-banner { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 14px 16px; border-radius: 16px; background: var(--pending-bg); color: var(--pending-fg); font-size: 14px; font-weight: 600; }
+.review-banner > span:first-child { display: flex; align-items: center; gap: 10px; }
+
+/* Requests tab */
+.chips { display: flex; flex-wrap: wrap; gap: 8px; }
+.chip { height: 44px; padding: 0 16px; border: 1px solid var(--line-strong); border-radius: 999px; background: var(--surface); font-size: 14px; font-weight: 500; }
+.chip[aria-pressed="true"] { border-color: var(--ink); background: var(--ink); color: #fff; font-weight: 600; }
+.request-card { display: flex; flex-direction: column; gap: 14px; padding: 16px; border-radius: 18px; background: var(--surface); border: 1px solid var(--line); }
+.request-name { font-size: 16px; font-weight: 600; }
+.request-reason { font-size: 14px; }
+.request-meta { font-size: 13px; color: var(--muted); }
+.progress { display: flex; gap: 6px; }
+.progress span { flex: 1 1 0; height: 6px; border-radius: 3px; background: var(--line); }
+.progress .progress-done { background: var(--accent); }
+.progress .progress-current { background: #b86a00; }
+.progress .progress-failed { background: var(--danger); }
+
+/* Profile tab */
+.account-card { display: flex; align-items: center; gap: 14px; padding: 18px; border-radius: 20px; background: var(--ink); color: var(--on-ink); }
+.avatar { display: flex; align-items: center; justify-content: center; width: 52px; height: 52px; flex-shrink: 0; border-radius: 999px; background: var(--mint); color: var(--ink); font-size: 18px; font-weight: 700; }
+.account-text { display: flex; flex-direction: column; gap: 3px; min-width: 0; font-size: 13px; }
+.account-contact { font-size: 16px; font-weight: 600; overflow-wrap: anywhere; }
+.list-card { border-radius: 18px; background: var(--surface); border: 1px solid var(--line); }
+.list-row { display: flex; align-items: center; justify-content: space-between; gap: 14px; min-height: 52px; padding: 0 16px; border-top: 1px solid var(--line-soft); }
+.list-row:first-child { border-top: 0; }
+.list-row-tall { justify-content: flex-start; padding: 16px; }
+.list-row-tall > span:last-child { display: flex; flex-direction: column; gap: 2px; }
+.list-icon { display: flex; align-items: center; justify-content: center; width: 40px; height: 40px; flex-shrink: 0; border-radius: 12px; background: var(--accent-tint); color: var(--accent); }
+.list-title { font-weight: 600; }
+.button-outline-danger { min-height: 52px; border: 1.5px solid var(--danger); background: var(--surface); color: var(--danger-fg); font-size: 15px; }
+
+/* Wider screens: more breathing room and two columns of cards */
+@media (min-width: 640px) {
+  .screen { padding-left: 24px; padding-right: 24px; }
+  .tab-screen { gap: 24px; padding-top: calc(var(--safe-top) + 32px); }
+  .tab-screen .title { font-size: 34px; }
+  .cred-grid, .request-list { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
+  .cred-card { gap: 48px; padding: 22px; }
+}
+/* Very small phones */
+@media (max-width: 350px) {
+  .screen { padding-left: 16px; padding-right: 16px; }
+  .welcome-copy h1 { font-size: 32px; }
+  .cred-name { font-size: 19px; }
+  .source-grid { grid-template-columns: minmax(0, 1fr); }
+}
